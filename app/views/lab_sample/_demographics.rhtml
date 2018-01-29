@@ -28,12 +28,12 @@
 
 .demographics {
 	float: left;
-	width: 60%;
+	width: 20%;
 }
 
 .sample {
 	float: right;
-	width: 40%;
+	width: 70%;
   background-color: lightyellow;
 	padding: 15px;
 }
@@ -48,6 +48,10 @@
 
 .lab_paramters {
 	margin-top: 15px;
+}
+
+.demographics span {
+  font-weight: bold;
 }
 
 </style>
@@ -78,15 +82,14 @@ function dataT(){
 	  <div class="demo-table-cell demographics">
 			<table style="width: 100%;">
         <tr>
-          <th>First name:</th>
-          <td id="first_name"></td>
-          <th>Last name:</th>
-          <td id="last_name"></td>
-          <th>Gender:&nbsp;(<span id="gender"></span>)</th>
+          <td>Name:&nbsp;
+          <span id="first_name" style=""></span>&nbsp;
+          <span id="last_name"></span>
+          &nbsp;(<span id="gender"></span>)</td>
         </tr>
         <tr>
-          <th>Birthdate:</th>
-          <td id="dob"></td>
+          <td>Birthdate:&nbsp;
+          <span id="dob"></span></td>
         </tr>
       </table>
     </div>
@@ -219,10 +222,14 @@ function getDemographics() {
 
 function printName(result) {
   var data = JSON.parse(result);
-  document.getElementById('first_name').innerHTML = data['given_name'];  
-  document.getElementById('last_name').innerHTML = data['family_name'];  
-  document.getElementById('gender').innerHTML = data['gender'];  
-  document.getElementById('dob').innerHTML = data['birthdate'];  
+  try {
+    document.getElementById('first_name').innerHTML = data['given_name'];  
+    document.getElementById('last_name').innerHTML = data['family_name'];  
+    document.getElementById('gender').innerHTML = data['gender'];  
+    document.getElementById('dob').innerHTML = data['birthdate'];  
+  }catch(e) {
+    return;
+  }
 }
 
 getDemographics();

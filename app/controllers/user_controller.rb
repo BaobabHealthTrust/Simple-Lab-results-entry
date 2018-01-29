@@ -1,9 +1,9 @@
 class UserController < ApplicationController
   def login
     if request.post?
-      user = User.authenticate(params[:pass])
-      if user
-        session[:user_id] = user.id
+      user = User.authenticate(params[:username], params[:pass])
+      unless user.blank?
+        session[:user_id] = user['user_id'].to_i
         redirect_to '/'
       else
         reset_session

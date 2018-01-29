@@ -41,3 +41,5 @@ Rails::Initializer.run do |config|
 end
 
 National_art = YAML.load(File.open(File.join(RAILS_ROOT, "config/database.yml"), "r"))['national_art']
+User.establish_connection(National_art)
+
