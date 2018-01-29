@@ -17,3 +17,4 @@ log/*
 .idea/*
 .ruby-version
 config/*.yml
+tmp/*
