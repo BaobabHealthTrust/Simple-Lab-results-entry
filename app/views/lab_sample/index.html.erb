@@ -1,0 +1,61 @@
+<%=javascript_include_tag "DataTables/jquery" %>                          
+<%=javascript_include_tag "DataTables/prototype" %>                          
+<script>jQuery.noConflict();</script>
+<%=javascript_include_tag "DataTables/jquery.dataTables.min" %>
+
+<%= stylesheet_link_tag "DataTables/demo_table_jui" %>                                     
+<%= stylesheet_link_tag "DataTables/jquery.dataTables" %>                                     
+
+  
+  
+<script>
+  
+function dataT(){          
+	dataTable = jQuery('#search_results').DataTable( {
+			"processing": true,
+			"serverSide": true,
+			"ajax": "/get_samples",
+      "columnDefs": [
+				{ "orderable": false, "targets": [3, 5,8] }
+			]
+	} );
+
+}
+</script>
+
+
+<%= stylesheet_link_tag "DataTables/beautify.css" %>
+
+
+
+<h1>Lab Sample(s)</h1>
+<p>Table will show the first latest 10 samples recorded (default)</p>
+
+
+<div class="page-header">
+  <div class="asset_search_div">
+  </div>
+</div>
+
+<table id="search_results" class="lab-data-table table table-striped table-bordered table-condensed">
+<thead>                                                                       
+<tr id = 'table_head'>                                                        
+  <th id="th1" style="width:100px;">Accession number</th>                           
+  <th id="th3" style="width:200px;">Patient identifier</th>                           
+  <th id="th4" style="width:150px;">Test date</th>                            
+  <th id="th5" style="width:200px;">Provider</th>                          
+  <th id="th5" style="width:130px;">Reported date</th>                          
+  <th id="th5" style="width:200px;">Updated by</th>                          
+  <th id="th5" style="width:170px;">Date updated</th>                          
+  <th id="th5" style="width:40px;">Attribute</th>                          
+  <th id="th5" style="width:200px;">&nbsp;</th>                          
+</tr>                                                                         
+</thead>                                                                      
+<tbody id='results'>                       
+</tbody>                                                                      
+</table>
+
+
+<script>                                                                        
+  dataT();                   
+</script>  

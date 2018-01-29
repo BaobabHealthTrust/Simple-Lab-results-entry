@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="icon" href="../../../../favicon.ico">
+
+    <title><%= app_title%></title>
+
+    <!-- Bootstrap core CSS -->
+    <%= stylesheet_link_tag "css/bootstrap.min.css" %>
+
+    <!-- Custom styles for this template -->
+    <%= stylesheet_link_tag "css/sticky-footer.css" %>
+    
+    <style>  
+      
+      img {
+        user-drag: none;
+        user-select: none;
+        -moz-user-select: none;
+        -webkit-user-drag: none;
+        -webkit-user-select: none;
+        -ms-user-select: none;
+        pointer-events: none;
+      }
+
+      body {
+        -webkit-user-select: none;  /* Chrome all / Safari all */
+        -moz-user-select: none;     /* Firefox all */
+        -ms-user-select: none;      /* IE 10+ */
+        user-select: none;          /* Likely future */      
+      }
+
+      .right-nav-btn {
+        float: right !important;
+        right: 20px !important;
+        position: absolute !important;
+      }
+
+    </style>
+  </head>
+
+  <body>
+		    <!-- Navigation -->
+    	<nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+        <div class="container">
+            <!-- Brand and toggle get grouped for better mobile display -->
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="/"><%= app_title%></a>
+            </div>
+            <!-- Collect the nav links, forms, and other content for toggling -->
+            <%unless User.current.blank?%>
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                <ul class="nav navbar-nav">
+                  <li><a href="#">Find client</a></li>
+                  <li><a href="/lab_sample">Lab Samples</a></li>
+									<!--li class="dropdown">
+										<a href="#" class="dropdown-toggle" data-toggle="dropdown" 
+												role="button" aria-haspopup="true" 
+												aria-expanded="false">Services <span class="caret"></span></a>
+											<ul class="dropdown-menu">
+												<li><a href="/lab_parameter">Lab Parameters</a></li>
+												<li role="separator" class="divider"></li>
+												<li><a href="/lab_sample">lab Samples</a></li>
+												<li role="separator" class="divider"></li>
+												<li><a href="#">Lab Tests</a></li>
+											</ul>
+										</li-->
+
+                    <li class="right-nav-btn">
+                      <a href="/logout">(<%=User.current.name%>)&nbsp;&nbsp;Logout</a>
+                    </li>
+                </ul>
+            </div>
+            <%end%>
+            <!-- /.navbar-collapse -->
+        </div>
+        <!-- /.container -->
+    </nav>
+
+    <!-- Begin page content -->
+    <%= javascript_include_tag "js/jquery_1.12.4.min.js" %>
+		<script>window.jQuery || document.write('<script src="../../assets/js/vendor/jquery.min.js"><\/script>')</script>
+    <%= javascript_include_tag "js/bootstrap.min-2.js" %>
+    <%= javascript_include_tag "js/ie10-viewport-bug-workaround.js" %>
+    <main role="main" class="container" style="margin-top: 60px;">
+			<%= yield %>
+    </main>
+
+    <footer class="footer">
+      <div class="container">
+        <span class="text-muted">Copyright&nbsp;&copy;&nbsp;<%=Date.today.year%> Baobab Health Trust - Malawi. All Rights Reserved.</span>
+      </div>
+    </footer>
+  </body>
+</html>
+

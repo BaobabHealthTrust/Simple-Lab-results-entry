@@ -1,0 +1,112 @@
+<%=javascript_include_tag "DataTables/jquery" %>                          
+<%=javascript_include_tag "DataTables/prototype" %>                          
+<script>jQuery.noConflict();</script>
+<%=javascript_include_tag "DataTables/jquery.dataTables.min" %>
+
+<%= stylesheet_link_tag "DataTables/demo_table_jui" %>                                     
+<%= stylesheet_link_tag "DataTables/jquery.dataTables" %>                                     
+
+  
+  
+<script>
+  
+  function dataT(){          
+    dataTable = jQuery('#search_results').dataTable();                                                  
+  }
+
+</script>
+
+
+<%= stylesheet_link_tag "DataTables/beautify.css" %>
+
+
+
+<h1>LabParameter(s)</h1>
+<p>Table will show the first latest 10 parameters recorded (default)</p>
+
+
+<div class="page-header">
+  <div class="asset_search_div">
+    <table style="float: right; width: 100%; margin: -16px;">
+      <tr>
+        <td>
+          <select name="search_params" id="search_params">
+            <option>Search By?</option>
+            <option value="Sample_ID">Sample ID</option>
+            <option value="TestName">Test Name</option>
+            <option value="TimeStamp">Test Date</option>
+          </select>
+        <input type="text" name="search" onkeyup = "javascript:findParameters()"
+            placeholder = "Parameter(s) search" id="search_words" /></td>
+    
+      </tr>
+    </table>
+  </div>
+</div>
+
+<table id="search_results" class="lab-data-table table table-striped table-bordered table-condensed">
+<thead>                                                                       
+<tr id = 'table_head'>                                                        
+  <th id="th1" style="width:200px;">Sample ID</th>                           
+  <th id="th3" style="width:200px;">Test name</th>                           
+  <th id="th4" style="width:200px;">Test value</th>                            
+  <th id="th5" style="width:200px;">Test date (date result recorded)</th>                          
+  <th id="th5" style="width:200px;">Test time (time result recorded)</th>                          
+</tr>                                                                         
+</thead>                                                                      
+<tbody id='results'>                       
+<%(@lab_parameters || []).each do |p|%>
+<tr>
+  <td><%= p.Sample_ID%></td>
+  <td><%= p.TestName%></td>
+  <td><%=p.Range%>&nbsp;<%= p.TESTVALUE%></td>
+  <td><%= p.TimeStamp.to_date.strftime('%d/%b/%Y')%></td>
+  <td><%= p.TimeStamp.to_time.strftime('%H:%M:%S')%></td>
+</tr>
+<%end%>                                   
+</tbody>                                                                      
+</table>
+
+
+<script>                                                                        
+  dataT();                   
+
+function findParameters() {                                                       
+  var search_str  = document.getElementById('search_words').value;               
+  var search_para = document.getElementById('search_params').value;               
+                                                                              
+  if (window.XMLHttpRequest) {// code for IE7+, Firefox, Chrome, Opera, Safari  
+    xmlhttp=new XMLHttpRequest();                                             
+  }else{// code for IE6, IE5                                                  
+    xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");                           
+  }                                                                           
+  xmlhttp.onreadystatechange=function() {                                     
+    if (xmlhttp.readyState==4 && xmlhttp.status==200) {                       
+      var results = xmlhttp.responseText;                                     
+      if(results == 'undefined' || results == '' || results == '"not validate"') {                           
+        return;                                                               
+      }else{                                                                  
+        dataTable.fnClearTable();
+        addRows(results);                                                           
+      }                                                                       
+    }                                                                         
+  }                                                                           
+  xmlhttp.open("GET","/lab_parameter_search?search_str="+search_str+"&search_para="+search_para,true);           
+  xmlhttp.send();                                                             
+} 
+
+function addRows(data) {
+  clients = JSON.parse(data);
+  counter = 0;
+  for (var i = 0; i < clients.length; i++) {
+    sample_id   = clients[i]['sample_id'];
+    test_name   = clients[i]['test_name'];
+    test_value  = clients[i]["test_value"];
+    test_date   = clients[i]["test_date"];
+    test_time   = clients[i]["test_time"];
+    dataTable.api().row.add([sample_id, test_name, test_value, test_date, test_time]).draw();
+  }
+
+}
+ 
+</script>  

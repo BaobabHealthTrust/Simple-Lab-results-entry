@@ -1,0 +1,14 @@
+#search_results_wrapper {
+  margin-top: 20px !important;
+}
+
+.asset_search_div {
+  text-align: right;
+  background-color: #00c0ef;
+  padding: 30px;
+  vertical-align: middle;
+}
+
+#search_params {
+  float: right;
+}

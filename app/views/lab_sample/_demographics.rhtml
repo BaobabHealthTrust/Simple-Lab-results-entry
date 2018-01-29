@@ -1,0 +1,377 @@
+
+<%=javascript_include_tag "DataTables/jquery" %>                          
+<%=javascript_include_tag "DataTables/prototype" %>                          
+<script>jQuery.noConflict();</script>
+<%=javascript_include_tag "DataTables/jquery.dataTables.min" %>
+
+<%= stylesheet_link_tag "DataTables/demo_table_jui" %>                                     
+<%= stylesheet_link_tag "DataTables/jquery.dataTables" %>                                     
+
+
+
+<%=stylesheet_link_tag "datePicker/pure_datepicker.css" %>
+
+
+<style>
+.demo-table {
+  display: table;
+  width: 99%;
+}
+
+.demographics-header {
+	border-radius: 5px 10px 5px 10px / 10px 5px 10px 5px;
+	border-radius: 5px;
+	border-radius: 5px 10px / 10px; 
+	padding: 10px;
+  background-color: #00c0ef;
+}
+
+.demographics {
+	float: left;
+	width: 60%;
+}
+
+.sample {
+	float: right;
+	width: 40%;
+  background-color: lightyellow;
+	padding: 15px;
+}
+
+.demo-table-row {
+  display: table-row;
+}
+
+.demo-table-cell {
+  display: table-cell;
+}
+
+.lab_paramters {
+	margin-top: 15px;
+}
+
+</style>
+
+
+  
+<script>
+  
+function dataT(){          
+	dataTable = jQuery('#parameter_results').DataTable( {
+			"processing": true,
+			"serverSide": true,
+			"ajax": "/get_parameters/<%= params[:sample_id]%>",
+      "columnDefs": [
+				{ "orderable": false, "targets": [1,4] }
+			]
+	} );
+
+}
+</script>
+  
+
+
+<div class="demo-table demographics-header">
+  
+  <div class="demo-table-row">
+  
+	  <div class="demo-table-cell demographics">
+			<table style="width: 100%;">
+        <tr>
+          <th>First name:</th>
+          <td id="first_name"></td>
+          <th>Last name:</th>
+          <td id="last_name"></td>
+          <th>Gender:&nbsp;(<span id="gender"></span>)</th>
+        </tr>
+        <tr>
+          <th>Birthdate:</th>
+          <td id="dob"></td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="demo-table-cell sample">
+      <table style="width: 99%;">
+				<%(@sample).sort_by{|a, b| a }.each do |attribute, res|%>
+				<tr>
+					<th><%= attribute %></th>
+					<td><%= res %></td>
+				</tr>
+				<%end%>
+			</table>
+    </div>
+
+  </div>
+
+</div>
+
+
+
+<div class="demo-table lab_paramters">
+  <div class="demo-table-row">
+    <div class="demo-table-cell parameters">
+      <table style="width: 99%;" id="parameter_results">
+				<thead>
+					<tr>
+						<th style="width:60%;">Test type</th>
+						<th style="width:5%;">Range</th>
+						<th>Value</th>
+						<th>Timestamp</th>
+						<th>&nbsp;</th>
+					</tr>
+				</thead>
+				<tfoot>
+          <tr>
+            <td><button class="btn btn-primary" onclick="addParameter();">New Parameter</button></td>
+            <td>&nbsp;</td>
+            <td>&nbsp;</td>
+            <td>&nbsp;</td>
+            <td>&nbsp;</td>
+          </tr>
+				</tfoot>
+			</table>
+    </div>
+  </div>
+
+
+</div>
+
+<div id="result-cover">
+</div>
+
+<div id="result-box">
+  <div style="text-align: center; border-style: solid; border-width: 0px 0px 1px;">
+    <span style="font-weight: bold; font-size: 15px;"><span id="activity_type"></span>&nbsp;Parameter&nbsp;(Sample ID:&nbsp;<%= params[:sample_id]%>)</span>
+  </div>
+
+  <table style="width: 99%; margin-top: 10px;">
+    <tr>
+      <td>Test Type:</td>
+      <td>
+        <select name="test-type" id="enter-test-type" style="width: 99%;">
+          <option value="">Select test type</option>
+          <%(TestType.all || []).each do |t|%>
+            <option value="<%=t.TestType%>"><%= t.TestName%></option>
+          <%end%>
+        </select>
+      </td>
+    </tr>
+    <tr>
+      <td>Test range:</td>
+      <td>
+        <select name="test-range" id="enter-range">
+          <option value="">Select range</option>
+          <option value="=">=</option>
+          <option value="<">&#60;</option>
+          <option value=">">&#62;</option>
+        </select>
+      </td>
+    </tr>
+    <tr>
+      <td>Test value:</td>
+      <td>
+				<input type="number" name="enter-test-value" id="enter-test-value" />
+			</td>
+    </tr>
+    <tr>
+      <td>Date:</td>
+      <td colspan="2">
+     		<input type="date" name="lab_paramter_date" 
+        id="lab_paramter_date" 
+        style="width: 30%; color: black;" 
+        onkeypress="return false;" /> 
+      </td>
+    </tr>
+		<tr>
+			<td colspan="2"><hr /></td>
+		</tr>
+		<tr>
+			<td colspan="2"><input type="hidden" name="parameter_id_to_edit" id="parameter_id_to_edit" /></td>
+		</tr>
+		<tr>
+			<td style="text-align: right;" colspan="2">
+				<button class="btn btn-success" onclick="javascript:validateEntry();">Save</button>
+				<button class="btn btn-warning" onclick="javascript:cancelEntry();">Cancel</button>
+			</td>
+		</tr>
+  </table>
+
+</div>
+
+
+<script>                                                                        
+  dataT();                   
+
+function getDemographics() {
+
+ jQuery.ajax({
+    type: "GET",
+    url: "/get_patient_details/<%= @patient_identifier %>",
+    //data: "identifier=" + patientID,
+    success: function(result){
+      printName(result);
+    }
+        
+  });
+
+}
+
+function printName(result) {
+  var data = JSON.parse(result);
+  document.getElementById('first_name').innerHTML = data['given_name'];  
+  document.getElementById('last_name').innerHTML = data['family_name'];  
+  document.getElementById('gender').innerHTML = data['gender'];  
+  document.getElementById('dob').innerHTML = data['birthdate'];  
+}
+
+getDemographics();
+
+function deleteParameter(id) {
+ jQuery.ajax({
+    type: "GET",
+    url: "/delete_lab_parameter/" + id,
+    success: function(result){
+      dataTable.ajax.reload();
+      //location.reload(); 
+    }
+  });
+}
+
+function addParameter() {
+  var activity_type = document.getElementById('activity_type');
+	activity_type.innerHTML = 'Add'
+
+  var cover = document.getElementById('result-cover');
+  var resultBox = document.getElementById('result-box');
+  var editInput = document.getElementById('parameter_id_to_edit');
+	editInput.value = null;
+
+  cover.style.cssText = 'display: inline;'
+  resultBox.style.cssText = 'display: inline;'
+}
+
+function editParameter(id) {
+  var activity_type = document.getElementById('activity_type');
+	activity_type.innerHTML = 'Edit'
+
+  var cover = document.getElementById('result-cover');
+  var resultBox = document.getElementById('result-box');
+  var editInput = document.getElementById('parameter_id_to_edit');
+	editInput.value = id;
+
+
+  cover.style.cssText = 'display: inline;'
+  resultBox.style.cssText = 'display: inline;'
+}
+
+
+function cancelEntry() {
+  var cover = document.getElementById('result-cover');
+  var resultBox = document.getElementById('result-box');
+  resultBox.style.cssText = 'display: none;'
+  cover.style.cssText = 'display: none;'
+}
+
+function validateEntry() {
+  var ttype 	= document.getElementById('enter-test-type');
+  var trange 	= document.getElementById('enter-range');
+  var tresult = document.getElementById('enter-test-value');
+  var ldate 	= document.getElementById('lab_paramter_date');
+  var editID 	= document.getElementById('parameter_id_to_edit');
+
+	if(stringIsEmpty(ttype.value)) {
+		return;
+	}else if(stringIsEmpty(trange.value)){
+		return;
+	}else if(stringIsEmpty(tresult.value)){
+		return;
+	}else if(!isNumber(tresult.value)){
+		return;
+	}else if(stringIsEmpty(ldate.value)){
+		return;
+	}
+
+  var params 	= "date=" + ldate.value + "&test_value=" + tresult.value + "&range=";
+	params 			+= trange.value + "&test_type=" + ttype.value + "&sample_id=<%=params[:sample_id]%>";
+
+	if(!stringIsEmpty(editID.value)){
+		params += "&parameter_id=" + editID.value;
+	}
+
+ 	jQuery.ajax({
+    type: "POST",
+    url: "/create_lab_parameter",
+    data: params,
+    success: function(result){
+      dataTable.ajax.reload();
+			cancelEntry();	
+    }
+  });
+
+}
+
+
+function stringIsEmpty(value) {
+  return value ? value.trim().length == 0 : true;
+}
+
+function isNumber(value) {
+	if ((undefined === value) || (null === value)) {
+			return false;
+	}
+	if (typeof value == 'number') {
+			return true;
+	}
+	return !isNaN(value - 0);
+}
+
+</script>  
+
+
+
+
+
+
+
+
+
+<style>
+#result-cover{
+  display: none;
+  position: absolute;
+  background-color: black;
+  width: 100%;
+  height: 102%;
+  left: 0%;
+  top: 0%;
+  z-index: 990;
+  opacity: 0.65;
+}
+
+#result-box {
+  display: none;
+  background-color: #F4F4F4;
+  border: 2px solid #E0E0E0;
+  border-radius: 15px;
+  height: 280px;
+  padding: 5px;
+  margin-top: 100px;
+  width: 530px;
+  /*margin-left: 430px;*/
+  z-index: 991;
+  opacity: 1;
+
+  position: fixed;
+  top: 15%;
+  left: 50%;
+  /* bring your own prefixes */
+  transform: translate(-50%, -50%);
+}
+
+
+
+
+
+
+</style>
