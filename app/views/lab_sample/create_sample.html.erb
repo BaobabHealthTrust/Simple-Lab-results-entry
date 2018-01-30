@@ -1,0 +1,153 @@
+
+<%=stylesheet_link_tag "datePicker/pure_datepicker.css" %>
+
+<style>
+.demo-table {
+  display: table;
+  width: 99%;
+	border-radius: 5px 10px 5px 10px / 10px 5px 10px 5px;
+	border-radius: 5px;
+	border-radius: 5px 10px / 10px; 
+	padding: 10px;
+}
+
+.demographics-header {
+  background-color: #00c0ef;
+}
+
+.demo-table-row {
+  display: table-row;
+}
+
+.demo-table-cell {
+  display: table-cell;
+}
+
+
+.inputs {
+  background-color: lightyellow;
+  margin-top: 15px;
+}
+
+</style>
+
+
+<div class="demo-table demographics-header">
+  <div class="demo-table-row">
+	  <div class="demo-table-cell demographics">
+			<table style="width: 100%;">
+        <tr>
+          <td>Name:&nbsp;
+          <span id="first_name" style=""></span>&nbsp;
+          <span id="last_name"></span>
+          &nbsp;(<span id="gender"></span>)</td>
+        </tr>
+        <tr>
+          <td>Birthdate:&nbsp;
+          <span id="dob"></span></td>
+        </tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<div class="demo-table inputs">
+  <div class="demo-table-row">
+	  <div class="demo-table-cell">
+      <form  accept-charset="UTF-8" id="new_lab_sample" action="/lab_sample/create" method="post">
+			<table>
+        
+        <tr>
+          <th>Test date:</th>
+          <td colspan="2">
+            <input type="date" name="test_date" 
+            id="test_date" 
+            style="color: black;" 
+            onkeypress="return false;" /> 
+          </td>
+        </tr>
+        
+        <tr>
+          <th colspan="2">&nbsp;</th>
+        </tr>
+        
+        
+        <tr>
+          <th>Attribute:</th>
+          <td colspan="2">
+            <select name="test_range" id="range">
+              <option value="">Select attribute</option>
+              <option value="pass">Pass</option>
+              <option value="fail">Fail</option>
+              <option value="lost">Lost</option>
+              <option value="voided">Voided</option>
+            </select>
+          </td>
+        </tr>
+        
+        <tr>
+          <th colspan="2">&nbsp;</th>
+        </tr>
+        
+        <tr>
+          <th colspan="2"><hr /></th>
+        </tr>
+        
+        <tr>
+          <th><button class="btn btn-success" onclick="validateInput();">Create</button></th>
+          <th>&nbsp;</th>
+          <th><button class="btn btn-warning" onclick="document.location='/'">Cancel</button></th>
+        </tr>
+ 
+        <input type="hidden" name="identifier" value="<%=params[:identifier]%>" />       
+        </form>
+        
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+
+function getDemographics() {
+
+ jQuery.ajax({
+    type: "GET",
+    url: "/get_patient_details/<%= params[:identifier] %>",
+    //data: "identifier=" + patientID,
+    success: function(result){
+      printName(result);
+    }
+        
+  });
+}
+
+function printName(result) {
+  var data = JSON.parse(result);
+  try {
+    document.getElementById('first_name').innerHTML = data['given_name'];  
+    document.getElementById('last_name').innerHTML = data['family_name'];  
+    document.getElementById('gender').innerHTML = data['gender'];  
+    document.getElementById('dob').innerHTML = data['birthdate'];  
+  }catch(e) {
+    return;
+  }
+}
+
+
+function validateInput() {
+  test_date = document.getElementById('test_date');
+  range     = document.getElementById('range');
+  
+  if(test_date.value.length < 1){
+    return;
+  }else if(range.value == 'Select range'){
+    return;
+  }
+
+  document.getElementById('new_lab_sample').submit();
+}
+
+getDemographics();
+</script>

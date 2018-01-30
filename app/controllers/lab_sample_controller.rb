@@ -3,107 +3,57 @@ class LabSampleController < ApplicationController
     @lab_samples = LabSample.find(:all, :limit => "0, 99", :order => "TimeStamp DESC")
   end
 
+  def create
+    lab_sample = LabSample.create(:PATIENTID => params[:identifier], :TESTDATE => params[:test_date].to_date,
+      :USERID => User.current.username, :DATE => Date.today, :TIME => Time.now().strftime('%H:%M:%S'),
+      :SOURCE => 0, :Attribute => params[:test_range])
+
+    redirect_to "/sample/#{lab_sample.Sample_ID}" and return
+  end
+
   def get_patients
-		#raise params[:search].inspect
-	  #location = []
-    from  = params[:start].to_i
-    to    = (from + 99)
-		length 				= params[:length].to_i
-    database_name = National_art['database']
+   
+    patients = []
+     
+    unless params[:search_string].blank?
+      database_name = National_art['database']
+      search_strings = params[:search_string].squish.split(' ')
 
-    column_order  = params['order']['0']['dir'].upcase
-    column_number = params['order']['0']['column'].to_i
-    column_name   = ['identifier','given_name',
-                    'middle_name','family_name','gender',
-                    'birthdate','birthdate_estimated']
-    
-    if params[:search]['value'].blank?
-      patients = ActiveRecord::Base.connection.select_all <<EOF
-      SELECT 
-        n.given_name, n.middle_name, n.family_name, p.birthdate, p.birthdate_estimated, gender  ,
-        i.identifier, p.date_created
-      FROM #{database_name}.person p 
-      INNER JOIN #{database_name}.person_name n ON p.person_id = n.person_id 
-      INNER JOIN #{database_name}.patient_identifier i ON p.person_id = i.patient_id
-      WHERE i.voided = 0 AND i.identifier_type = 3
-      ORDER BY #{column_name[column_number]} #{column_order}
-      limit #{from}, #{length};
+      (search_strings || []).each do |search_string|
+        results = ActiveRecord::Base.connection.select_all <<EOF
+        SELECT 
+          DISTINCT(p.person_id) patient_id ,n.given_name, n.middle_name, n.family_name, p.birthdate, p.birthdate_estimated, gender  ,
+          i.identifier, p.date_created
+        FROM #{database_name}.person p 
+        INNER JOIN #{database_name}.person_name n ON p.person_id = n.person_id 
+        INNER JOIN #{database_name}.patient_identifier i ON p.person_id = i.patient_id
+        WHERE i.voided = 0 AND i.identifier_type = 3 
+        AND (identifier LIKE '%#{search_string}%' OR given_name LIKE '%#{search_string}%' 
+        OR middle_name LIKE '%#{search_string}%' OR family_name LIKE '%#{search_string}%')
+        LIMIT 10;
 EOF
-
-      total_count = ActiveRecord::Base.connection.select_one <<EOF
-      SELECT count(*) as total_count 
-      FROM #{database_name}.person p 
-      INNER JOIN #{database_name}.person_name n ON p.person_id = n.person_id 
-      INNER JOIN #{database_name}.patient_identifier i ON p.person_id = i.patient_id
-      WHERE i.voided = 0 AND i.identifier_type = 3
-EOF
-
-      total_count = total_count['total_count'].to_i
-    else
-      patients = ActiveRecord::Base.connection.select_all <<EOF
-      SELECT 
-        n.given_name, n.middle_name, n.family_name, p.birthdate, p.birthdate_estimated, gender  ,
-        i.identifier, p.date_created
-      FROM #{database_name}.person p 
-      INNER JOIN #{database_name}.person_name n ON p.person_id = n.person_id 
-      INNER JOIN #{database_name}.patient_identifier i ON p.person_id = i.patient_id
-      WHERE i.voided = 0 AND i.identifier_type = 3
-      AND (given_name LIKE '%#{params[:search]['value']}%'
-      OR middle_name LIKE '%#{params[:search]['value']}%'
-      OR family_name LIKE '%#{params[:search]['value']}%'
-      OR gender LIKE '%#{params[:search]['value']}%'
-      OR birthdate LIKE '%#{params[:search]['value']}%')
-      ORDER BY #{column_name[column_number]} #{column_order}
-      limit #{from}, #{length};
-EOF
-
-      total_count = ActiveRecord::Base.connection.select_one <<EOF
-      SELECT count(*) as total_count 
-      FROM #{database_name}.person p 
-      INNER JOIN #{database_name}.person_name n ON p.person_id = n.person_id 
-      INNER JOIN #{database_name}.patient_identifier i ON p.person_id = i.patient_id
-      WHERE i.voided = 0 AND i.identifier_type = 3
-      AND (given_name LIKE '%#{params[:search]['value']}%'
-      OR middle_name LIKE '%#{params[:search]['value']}%'
-      OR family_name LIKE '%#{params[:search]['value']}%'
-      OR gender LIKE '%#{params[:search]['value']}%'
-      OR birthdate LIKE '%#{params[:search]['value']}%')
-      ORDER BY #{column_name[column_number]} #{column_order};
-EOF
-
-      total_count = total_count['total_count'].to_i
+  
+        (results || []).each do |result|
+          patients << {
+            :identifier           =>  result['identifier'],
+            :given_name           =>  result['given_name'],
+            :middle_name          =>  result['middle_name'],
+            :family_name          =>  result['family_name'],
+            :gender               =>  result['gender'],
+            :birthdate            =>  "#{(result['birthdate'].to_date.strftime('%d/%b/%Y') rescue nil)}",
+            :birthdate_estimated  =>  (result['birthdate_estimated'] == 1 ? true : false),
+            :date_created         =>  "#{(result['date_created'].to_date.strftime('%d/%b/%Y') rescue nil)}",
+          }
+        end
+        
+        patients = patients.uniq
+      end
     end
 
-    patients_results = []
-    
-
-    (patients || []).each do |l|
-      patients_results << [
-        l['identifier'],
-        l['given_name'],
-        l['middle_name'],
-        l['family_name'],
-        l['gender'],
-        "#{(l['birthdate'].to_date.strftime('%d/%b/%Y') rescue nil)}",
-        l['birthdate_estimated'],
-        "#{(l['date_created'].to_time.strftime('%d/%b/%Y %H:%M:%S') rescue nil)}",
-        buildCreateSampleBTN(l['identifier'])
-      ]
-		end
-
-		data_table = {
-			"draw" => params[:draw].to_i,
-			"recordsTotal" => (total_count),
-			"recordsFiltered" => (total_count),
-			"data" => patients_results
-		} 
- 
-
-    render :text => data_table.to_json
+    render :text => patients.to_json
 	end
 
 	def get_samples
-		#raise params[:search].inspect
 	  #location = []
     from  = params[:start].to_i
     to    = (from + 99)
@@ -200,7 +150,6 @@ EOF
   end
 
   def get_parameters
-		#raise params[:search].inspect
 	  #location = []
     from  = params[:start].to_i
     to    = (from + 99)

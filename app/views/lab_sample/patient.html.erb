@@ -1,0 +1,111 @@
+<%=javascript_include_tag "DataTables/jquery" %>                          
+<%=javascript_include_tag "DataTables/prototype" %>                          
+<script>jQuery.noConflict();</script>
+<%=javascript_include_tag "DataTables/jquery.dataTables.min" %>
+
+<%= stylesheet_link_tag "DataTables/demo_table_jui" %>                                     
+<%= stylesheet_link_tag "DataTables/jquery.dataTables" %>                                     
+
+  
+  
+<script>
+var dataTable = null;
+  
+function dataT(){          
+	dataTable = jQuery('#search_results').DataTable( {} );
+}
+
+function findPatients(e) {
+ var search_string = e.value;
+
+ jQuery.ajax({
+    type: "GET",
+    url: "/get_patients/" + search_string,
+    success: function(result){
+      dataTable.clear(); //fnClearTable();
+      addRows(result);                                                           
+    }
+  });
+}
+
+</script>
+
+
+<%= stylesheet_link_tag "DataTables/beautify.css" %>
+
+<style>
+#search_words {
+  width: 30%;
+}
+
+</style>
+
+
+<h1>Find patient(s)</h1>
+<p>Table will show the first 10 patient records (default)</p>
+
+
+<div class="page-header">
+  <div class="asset_search_div">
+      <!--button class="btn btn-info" style="float: left;" onclick="javascript:location='/'">
+        <span class="glyphicon glyphicon-step-backward"></span> Back home</button-->
+
+      <input type="text" name="search" onkeyup = "javascript:findPatients(this)"
+        placeholder = "Patient(s) search: search by identifier / first name / last name" id="search_words" />
+  </div>
+</div>
+
+<table id="search_results" class="lab-data-table table table-striped table-bordered table-condensed">
+<thead>                                                                       
+<tr id = 'table_head'>                                                        
+  <th id="th1" style="width:100px;">identifier</th>                           
+  <th id="th3" style="width:200px;">First name</th>                           
+  <th id="th4" style="width:150px;">Middle name</th>                            
+  <th id="th5" style="width:200px;">Last name</th>                          
+  <th id="th5" style="width:30px;">Gender</th>                          
+  <th id="th5" style="width:200px;">Birthdate</th>                          
+  <th id="th5" style="width:170px;">Birthdate estimated</th>                          
+  <th id="th5" style="width:200px;">date created/registered</th>                          
+  <th id="th5" style="width:200px;">&nbsp;</th>                          
+</tr>                                                                         
+</thead>                               
+<tbody>
+</tbody>                                       
+</table>
+
+
+<script>                                                                        
+  dataT();                   
+
+function addRows(data) {
+  var patients = JSON.parse(data);
+  
+  for (var i = 0; i < patients.length; i++) {
+    first_name            = patients[i]['given_name'];
+    middle_name           = patients[i]['middle_name'];
+    last_name             = patients[i]['family_name'];
+    gender                = patients[i]["gender"];
+    birthdate             = patients[i]["birthdate"];
+    birthdate_estimated   = patients[i]["birthdate_estimated"];
+    identifier            = patients[i]["identifier"];
+    date_created          = patients[i]["date_created"];
+
+    dataTable.row.add([identifier, first_name, middle_name, last_name, gender, birthdate, birthdate_estimated, date_created, addBTN(identifier)]).draw();
+  }
+}
+
+function addBTN(identifier) {
+  var s = document.createElement('span');
+  var btn = document.createElement('button');
+  btn.setAttribute('class','btn btn-primary');
+  btn.innerHTML = 'Create lab sample';
+  btn.setAttribute('onclick',"javascript:createLabSample('" + identifier + "')");
+  s.appendChild(btn);
+  return s.innerHTML;
+}
+
+function createLabSample(identifier) {
+  document.location = "/create_sample/" + identifier;
+}
+
+</script>  
