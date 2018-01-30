@@ -6,7 +6,8 @@ class LabSampleController < ApplicationController
   def create
     lab_sample = LabSample.create(:PATIENTID => params[:identifier], :TESTDATE => params[:test_date].to_date,
       :USERID => User.current.username, :DATE => Date.today, :TIME => Time.now().strftime('%H:%M:%S'),
-      :SOURCE => 0, :Attribute => params[:test_range])
+      :SOURCE => 0, :Attribute => params[:test_range], :UpdateBy => User.current.username,
+      :UpdateTimeStamp => Time.now().strftime('%Y-%m-%d %H:%M:%S'), :DeleteYN => 0)
 
     redirect_to "/sample/#{lab_sample.Sample_ID}" and return
   end
