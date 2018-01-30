@@ -1,5 +1,5 @@
 [type="date"] {
-  background:#fff url(/datePicker/calendar_2.png)  97% 50% no-repeat ;
+  background:#fff url(/images/datePicker/calendar_2.png)  97% 50% no-repeat ;
 }
 [type="date"]::-webkit-inner-spin-button {
   display: none;

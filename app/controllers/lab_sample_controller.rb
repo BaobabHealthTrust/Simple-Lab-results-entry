@@ -225,15 +225,12 @@ EOF
 
     person_name = ActiveRecord::Base.connection.select_one <<EOF
     SELECT given_name, middle_name, family_name, gender, DATE_FORMAT(birthdate, '%d/%b/%Y') birthdate, 
-    birthdate_estimated,
-    a.address1, a.address2, a.city_village, a.state_province
+    birthdate_estimated
     FROM #{database_name}.person p
     INNER JOIN #{database_name}.patient_identifier i ON i.patient_id = p.person_id
-    INNER JOIN #{database_name}.person_name n ON p.person_id = n.person_id
-    INNER JOIN #{database_name}.person_address a ON p.person_id = a.person_id
+    LEFT JOIN #{database_name}.person_name n ON p.person_id = n.person_id
     WHERE identifier = '#{identifier}' AND i.voided = 0 AND n.voided = 0 
-    AND p.voided = 0 AND a.voided = 0
-    ORDER BY n.date_created DESC LIMIT 1;
+    AND p.voided = 0 ORDER BY n.date_created DESC LIMIT 1;
 EOF
 
     
