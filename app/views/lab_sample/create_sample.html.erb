@@ -55,7 +55,8 @@
 <div class="demo-table inputs">
   <div class="demo-table-row">
 	  <div class="demo-table-cell">
-      <form  accept-charset="UTF-8" id="new_lab_sample" action="/lab_sample/create" method="post">
+      <form  accept-charset="UTF-8" id="new_lab_sample" 
+       onsubmit="return validateInput()" action="/lab_sample/create" method="post">
 			<table>
         
         <tr>
@@ -141,9 +142,9 @@ function validateInput() {
   range     = document.getElementById('range');
   
   if(test_date.value.length < 1){
-    return;
+    return false;
   }else if(range.value == 'Select range'){
-    return;
+    return false;
   }
 
   document.getElementById('new_lab_sample').submit();
