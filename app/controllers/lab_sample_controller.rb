@@ -139,7 +139,7 @@ EOF
     (lab_sample.attributes.keys || []).each_with_index do |l, i|
       attribute = lab_sample.send(lab_sample.attributes.keys[i])
       if l.upcase.match(/timestamp/i) and not attribute.blank?
-        attribute = attribute.to_time.strftime('%d/%b/%Y %H:%M:%S')
+        attribute = attribute.to_time.strftime('%d/%b/%Y %H:%M:%S') rescue attribute
       elsif l.upcase.match(/date/i) and not attribute.blank?
         attribute = attribute.to_date.strftime('%d/%b/%Y') rescue attribute 
       end unless attribute.blank?
@@ -221,7 +221,7 @@ EOF
   def get_patient_details
     national_art = National_art
     database_name = national_art['database']
-    identifier = params[:identifier]
+    identifier = params[:identifier].gsub('-','').squish rescue ''
 
     person_name = ActiveRecord::Base.connection.select_one <<EOF
     SELECT given_name, middle_name, family_name, gender, DATE_FORMAT(birthdate, '%d/%b/%Y') birthdate, 
@@ -233,6 +233,33 @@ EOF
     AND p.voided = 0 ORDER BY n.date_created DESC LIMIT 1;
 EOF
 
+    if person_name.blank?
+			begin
+				ActiveRecord::Base.establish_connection(
+				:adapter  => "mysql",
+				:host     => "192.168.7.202",
+				:database => "openmrs_production",
+				:username => "openmrs",
+				:password => "mysql.letmein!")
+			rescue
+				
+			end
+
+			begin
+				person_name = ActiveRecord::Base.connection.select_one <<EOF
+				SELECT given_name, middle_name, family_name, gender, DATE_FORMAT(birthdate, '%d/%b/%Y') birthdate, 
+				birthdate_estimated
+				FROM #{database_name}.person p
+				INNER JOIN #{database_name}.patient_identifier i ON i.patient_id = p.person_id
+				LEFT JOIN #{database_name}.person_name n ON p.person_id = n.person_id
+				WHERE identifier = '#{identifier}' AND i.voided = 0 AND n.voided = 0 
+				AND p.voided = 0 ORDER BY n.date_created DESC LIMIT 1;
+EOF
+
+			rescue
+				
+			end
+    end
     
     render :text => person_name.to_json
   end
