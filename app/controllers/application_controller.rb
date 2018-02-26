@@ -9,7 +9,16 @@ class ApplicationController < ActionController::Base
   # Scrub sensitive parameters from your log
   # filter_parameter_logging :password
   
-  
+  def connect_to_app_database
+    app_env = ApplicationDB
+    ActiveRecord::Base.establish_connection(
+    :adapter  => app_env['adapter'],
+    :host     => app_env['host'],
+    :database => app_env['database'],
+    :username => app_env['username'],
+    :password => app_env['password'])
+  end
+    
   protected
 
   def check_if_login

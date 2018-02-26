@@ -1,6 +1,6 @@
 class LabSampleController < ApplicationController
   def index
-    @lab_samples = LabSample.find(:all, :limit => "0, 99", :order => "TimeStamp DESC")
+    connect_to_app_database
   end
 
   def create
@@ -17,45 +17,51 @@ class LabSampleController < ApplicationController
     patients = []
      
     unless params[:search_string].blank?
-      database_name = National_art['database']
       search_strings = params[:search_string].squish.split(' ')
 
-      (search_strings || []).each do |search_string|
-        results = ActiveRecord::Base.connection.select_all <<EOF
-        SELECT 
-          DISTINCT(p.person_id) patient_id ,n.given_name, n.middle_name, n.family_name, p.birthdate, p.birthdate_estimated, gender  ,
-          i.identifier, p.date_created
-        FROM #{database_name}.person p 
-        INNER JOIN #{database_name}.person_name n ON p.person_id = n.person_id 
-        INNER JOIN #{database_name}.patient_identifier i ON p.person_id = i.patient_id
-        WHERE i.voided = 0 AND i.identifier_type = 3 
-        AND (identifier LIKE '%#{search_string}%' OR given_name LIKE '%#{search_string}%' 
-        OR middle_name LIKE '%#{search_string}%' OR family_name LIKE '%#{search_string}%')
-        LIMIT 10;
-EOF
-  
-        (results || []).each do |result|
-          patients << {
-            :identifier           =>  result['identifier'],
-            :given_name           =>  result['given_name'],
-            :middle_name          =>  result['middle_name'],
-            :family_name          =>  result['family_name'],
-            :gender               =>  result['gender'],
-            :birthdate            =>  "#{(result['birthdate'].to_date.strftime('%d/%b/%Y') rescue nil)}",
-            :birthdate_estimated  =>  (result['birthdate_estimated'] == 1 ? true : false),
-            :date_created         =>  "#{(result['date_created'].to_date.strftime('%d/%b/%Y') rescue nil)}",
-          }
+			begin
+        national_art = National_art['database']
+				ActiveRecord::Base.establish_connection(
+        :adapter  => national_art['adapter'],
+        :host     => national_art['host'],
+        :database => national_art['database'],
+        :username => national_art['username'],
+        :password => national_art['password'])
+      
+        (search_strings || []).each do |search_string|
+          search_patients(search_string, patients)
         end
+		  rescue 
+        connect_to_app_database
+			end
+
+    
+			begin
+        national_art = National_ART_MPC
+				ActiveRecord::Base.establish_connection(
+        :adapter  => national_art['adapter'],
+        :host     => national_art['host'],
+        :database => national_art['database'],
+        :username => national_art['username'],
+        :password => national_art['password'])
+      
+        (search_strings || []).each do |search_string|
+          search_patients(search_string, patients)
+        end
+		  rescue 
+        connect_to_app_database
+			end
+
+    
         
-        patients = patients.uniq
-      end
     end
 
+    connect_to_app_database
+    patients = patients.uniq
     render :text => patients.to_json
 	end
 
 	def get_samples
-	  #location = []
     from  = params[:start].to_i
     to    = (from + 99)
 		length 				= params[:length].to_i
@@ -72,7 +78,6 @@ EOF
       :limit => "#{from}, #{length}",
       :order => "#{column_name[column_number]} #{column_order}")
 
-      #total_count = LabSample.find(:all, :conditions =>["DeleteYN = 0"]).count
       total_count = ActiveRecord::Base.connection.select_one <<EOF
       SELECT count(*) as total_count FROM Lab_Sample WHERE DeleteYN = 0;
 EOF
@@ -87,12 +92,6 @@ EOF
         OR USERID LIKE(?) OR UpdateBy LIKE (?) OR Attribute LIKE(?) AND DeleteYN = 0", 
         search_str, search_str, search_str, search_str, search_str, search_str], 
         :limit => "#{from}, #{length}", :order => "#{column_name[column_number]} #{column_order}")
-
-		  #lab_samples_count = LabSample.find(:all, 
-       # :conditions =>["AccessionNum LIKE (?) OR PATIENTID LIKE (?) OR TESTDATE LIKE (?) 
-        #OR USERID LIKE(?) OR UpdateBy LIKE (?) OR Attribute LIKE(?) AND DeleteYN = 0", 
-        #search_str, search_str, search_str, search_str, search_str, search_str], 
-        #:order => "TimeStamp DESC").count
 
       total_count = ActiveRecord::Base.connection.select_one <<EOF
       SELECT count(*) as total_count FROM Lab_Sample WHERE DeleteYN = 0
@@ -151,7 +150,6 @@ EOF
   end
 
   def get_parameters
-	  #location = []
     from  = params[:start].to_i
     to    = (from + 99)
 		length 				= params[:length].to_i
@@ -223,26 +221,40 @@ EOF
     database_name = national_art['database']
     identifier = params[:identifier].gsub('-','').squish rescue ''
 
+    begin
+      ActiveRecord::Base.establish_connection(
+      :adapter  => national_art['adapter'],
+      :host     => national_art['host'],
+      :database => national_art['database'],
+      :username => national_art['username'],
+      :password => national_art['password'])
+    rescue
+      connect_to_app_database
+    end
+
+
+
     person_name = ActiveRecord::Base.connection.select_one <<EOF
     SELECT given_name, middle_name, family_name, gender, DATE_FORMAT(birthdate, '%d/%b/%Y') birthdate, 
     birthdate_estimated
-    FROM #{database_name}.person p
-    INNER JOIN #{database_name}.patient_identifier i ON i.patient_id = p.person_id
-    LEFT JOIN #{database_name}.person_name n ON p.person_id = n.person_id
+    FROM person p
+    INNER JOIN patient_identifier i ON i.patient_id = p.person_id
+    LEFT JOIN person_name n ON p.person_id = n.person_id
     WHERE identifier = '#{identifier}' AND i.voided = 0 AND n.voided = 0 
     AND p.voided = 0 ORDER BY n.date_created DESC LIMIT 1;
 EOF
 
     if person_name.blank?
 			begin
+        national_art = National_ART_MPC
 				ActiveRecord::Base.establish_connection(
-				:adapter  => "mysql",
-				:host     => "192.168.7.202",
-				:database => "openmrs_production",
-				:username => "openmrs",
-				:password => "mysql.letmein!")
-			rescue
-				
+        :adapter  => national_art['adapter'],
+        :host     => national_art['host'],
+        :database => national_art['database'],
+        :username => national_art['username'],
+        :password => national_art['password'])
+		  rescue 
+        connect_to_app_database
 			end
 
 			begin
@@ -261,6 +273,7 @@ EOF
 			end
     end
     
+    connect_to_app_database
     render :text => person_name.to_json
   end
 
@@ -341,6 +354,35 @@ EOF
 EOF
 
     return btn_html
+  end
+
+  def search_patients(search_string, patients)
+
+    results = ActiveRecord::Base.connection.select_all <<EOF
+    SELECT 
+      DISTINCT(p.person_id) patient_id ,n.given_name, n.middle_name, n.family_name, p.birthdate, p.birthdate_estimated, gender  ,
+      i.identifier, p.date_created
+    FROM person p 
+    INNER JOIN person_name n ON p.person_id = n.person_id 
+    INNER JOIN patient_identifier i ON p.person_id = i.patient_id
+    WHERE i.voided = 0 AND i.identifier_type = 3 
+    AND (identifier LIKE '%#{search_string}%' OR given_name LIKE '%#{search_string}%' 
+    OR middle_name LIKE '%#{search_string}%' OR family_name LIKE '%#{search_string}%')
+    LIMIT 10;
+EOF
+
+    (results || []).each do |result|
+      patients << {
+        :identifier           =>  result['identifier'],
+        :given_name           =>  result['given_name'],
+        :middle_name          =>  result['middle_name'],
+        :family_name          =>  result['family_name'],
+        :gender               =>  result['gender'],
+        :birthdate            =>  "#{(result['birthdate'].to_date.strftime('%d/%b/%Y') rescue nil)}",
+        :birthdate_estimated  =>  (result['birthdate_estimated'] == 1 ? true : false),
+        :date_created         =>  "#{(result['date_created'].to_date.strftime('%d/%b/%Y') rescue nil)}",
+      }
+    end
   end
 
 end
