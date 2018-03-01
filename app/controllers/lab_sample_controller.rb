@@ -88,9 +88,9 @@ EOF
       search_str = "%#{params[:search]['value']}%"
 
 		  lab_samples = LabSample.find(:all, 
-        :conditions =>["AccessionNum LIKE (?) OR PATIENTID LIKE (?) OR TESTDATE LIKE (?) 
+        :conditions =>["Sample_ID LIKE (?) OR AccessionNum LIKE (?) OR PATIENTID LIKE (?) OR TESTDATE LIKE (?) 
         OR USERID LIKE(?) OR UpdateBy LIKE (?) OR Attribute LIKE(?) AND DeleteYN = 0", 
-        search_str, search_str, search_str, search_str, search_str, search_str], 
+        search_str, search_str, search_str, search_str, search_str, search_str, search_str], 
         :limit => "#{from}, #{length}", :order => "#{column_name[column_number]} #{column_order}")
 
       total_count = ActiveRecord::Base.connection.select_one <<EOF
