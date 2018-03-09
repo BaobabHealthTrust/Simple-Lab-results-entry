@@ -16,7 +16,7 @@ function dataT(){
 			"serverSide": true,
 			"ajax": "/get_samples",
       "columnDefs": [
-				{ "orderable": false, "targets": [3, 5,8] }
+				{ "orderable": false, "targets": [0,7,10] }
 			]
 	} );
 
@@ -40,13 +40,15 @@ function dataT(){
 <table id="search_results" class="lab-data-table table table-striped table-bordered table-condensed">
 <thead>                                                                       
 <tr id = 'table_head'>                                                        
-  <th id="th1" style="width:100px;">Accession number</th>                           
-  <th id="th3" style="width:200px;">Patient identifier</th>                           
-  <th id="th4" style="width:150px;">Test date</th>                            
-  <th id="th5" style="width:200px;">Provider</th>                          
-  <th id="th5" style="width:130px;">Reported date</th>                          
-  <th id="th5" style="width:200px;">Updated by</th>                          
-  <th id="th5" style="width:170px;">Date updated</th>                          
+  <th id="th1" style="width:100px;">Sample ID</th>                           
+  <th id="th1" style="width:100px;">Accession Number</th>                           
+  <th id="th3" style="width:200px;">Patient Identifier</th>                           
+  <th id="th4" style="width:150px;">Test Ordered</th>                            
+  <th id="th4" style="width:150px;">Order Date</th>                            
+  <th id="th5" style="width:200px;">Ordered By</th>                          
+  <th id="th5" style="width:130px;">Reported Date</th>                          
+  <th id="th5" style="width:200px;">Updated By</th>                          
+  <th id="th5" style="width:170px;">Date Updated</th>                          
   <th id="th5" style="width:40px;">Attribute</th>                          
   <th id="th5" style="width:200px;">&nbsp;</th>                          
 </tr>                                                                         

@@ -20,13 +20,7 @@ class LabSampleController < ApplicationController
       search_strings = params[:search_string].squish.split(' ')
 
 			begin
-        national_art = National_art['database']
-				ActiveRecord::Base.establish_connection(
-        :adapter  => national_art['adapter'],
-        :host     => national_art['host'],
-        :database => national_art['database'],
-        :username => national_art['username'],
-        :password => national_art['password'])
+        connect_to_bart_database
       
         (search_strings || []).each do |search_string|
           search_patients(search_string, patients)
@@ -37,14 +31,8 @@ class LabSampleController < ApplicationController
 
     
 			begin
-        national_art = National_ART_MPC
-				ActiveRecord::Base.establish_connection(
-        :adapter  => national_art['adapter'],
-        :host     => national_art['host'],
-        :database => national_art['database'],
-        :username => national_art['username'],
-        :password => national_art['password'])
-      
+        connect_to_remote_bart_database
+         
         (search_strings || []).each do |search_string|
           search_patients(search_string, patients)
         end
@@ -62,6 +50,8 @@ class LabSampleController < ApplicationController
 	end
 
 	def get_samples
+    connect_to_app_database
+
     from  = params[:start].to_i
     to    = (from + 99)
 		length 				= params[:length].to_i
@@ -69,17 +59,24 @@ class LabSampleController < ApplicationController
 
     column_order  = params['order']['0']['dir'].upcase
     column_number = params['order']['0']['column'].to_i
-    column_name   = ['AccessionNum','PATIENTID',
-                    'TESTDATE','USERID','DATE',
+    column_name   = ['Sample_ID','AccessionNum','PATIENTID',
+                    'TestOrdered','OrderDate','Clinician_F_Name','DATE',
                     'UpdateBy','TimeStamp','Attribute','']
     
     if params[:search]['value'].blank?
-		  lab_samples = LabSample.find(:all, :conditions => ["DeleteYN = 0"], 
+		  lab_samples = LabSample.find(:all, 
+      :joins => "LEFT JOIN LabTestTable l ON l.AccessionNum = Lab_Sample.AccessionNum 
+        LEFT JOIN Clinician c ON c.Clinician_ID = l.OrderedBy",
+      :select => "Lab_Sample.*, l.TestOrdered,l.OrderDate, c.*",
+      :conditions => ["Lab_Sample.DeleteYN = 0"], 
       :limit => "#{from}, #{length}",
       :order => "#{column_name[column_number]} #{column_order}")
 
       total_count = ActiveRecord::Base.connection.select_one <<EOF
-      SELECT count(*) as total_count FROM Lab_Sample WHERE DeleteYN = 0;
+      SELECT count(*) as total_count FROM Lab_Sample l 
+      LEFT JOIN LabTestTable t ON l.AccessionNum = t.AccessionNum 
+      LEFT JOIN Clinician c ON c.Clinician_ID = t.OrderedBy 
+      WHERE l.DeleteYN = 0;
 EOF
 
       total_count = total_count['total_count'].to_i
@@ -87,18 +84,28 @@ EOF
     else
       search_str = "%#{params[:search]['value']}%"
 
-		  lab_samples = LabSample.find(:all, 
-        :conditions =>["Sample_ID LIKE (?) OR AccessionNum LIKE (?) OR PATIENTID LIKE (?) OR TESTDATE LIKE (?) 
-        OR USERID LIKE(?) OR UpdateBy LIKE (?) OR Attribute LIKE(?) AND DeleteYN = 0", 
-        search_str, search_str, search_str, search_str, search_str, search_str, search_str], 
+		  lab_samples = LabSample.find(:all, :select => "Lab_Sample.*, l.TestOrdered, l.OrderDate, c.*",
+        :joins => "LEFT JOIN LabTestTable l ON l.AccessionNum = Lab_Sample.AccessionNum 
+        LEFT JOIN Clinician c ON c.Clinician_ID = l.OrderedBy",
+        :conditions =>["(Sample_ID LIKE (?) OR Lab_Sample.AccessionNum LIKE (?) OR PATIENTID LIKE (?) OR l.OrderDate LIKE (?) 
+        OR USERID LIKE(?) OR UpdateBy LIKE (?) OR Attribute LIKE(?) 
+        OR l.TestOrdered LIKE (?) OR (c.Clinician_F_Name LIKE(?) AND c.Clinician_L_Name LIKE (?))) 
+        AND DeleteYN = 0", search_str, search_str, search_str, (search_str.to_date.strftime('%d-%b-%Y') rescue search_str),
+        search_str, search_str, search_str, search_str, 
+        (search_str.squish.split(' ')[0] rescue search_str), 
+        (search_str.squish.split(' ')[1] rescue search_str)],
         :limit => "#{from}, #{length}", :order => "#{column_name[column_number]} #{column_order}")
 
       total_count = ActiveRecord::Base.connection.select_one <<EOF
-      SELECT count(*) as total_count FROM Lab_Sample WHERE DeleteYN = 0
-      AND (AccessionNum LIKE ('#{search_str}') OR PATIENTID LIKE ('#{search_str}') 
-      OR TESTDATE LIKE ('#{search_str}') 
-      OR USERID LIKE('#{search_str}') OR UpdateBy LIKE ('#{search_str}') 
-      OR Attribute LIKE('#{search_str}'));
+      SELECT count(*) as total_count FROM Lab_Sample l
+      LEFT JOIN LabTestTable t ON l.AccessionNum = t.AccessionNum
+      LEFT JOIN Clinician c ON c.Clinician_ID = t.OrderedBy 
+      WHERE l.DeleteYN = 0 AND (l.Sample_ID LIKE ('#{search_str}') OR l.AccessionNum LIKE ('#{search_str}') 
+      OR l.PATIENTID LIKE ('#{search_str}') OR t.OrderDate LIKE ('#{(search_str.to_date.strftime('%d-%b-%Y') rescue search_str)}') 
+      OR l.USERID LIKE('#{search_str}') OR l.UpdateBy LIKE ('#{search_str}') 
+      OR l.Attribute LIKE('#{search_str}') OR t.TestOrdered LIKE('#{search_str}') 
+      OR (c.Clinician_F_Name LIKE('#{(search_str.squish.split(' ')[0] rescue search_str)}') 
+      AND c.Clinician_L_Name LIKE('#{(search_str.squish.split(' ')[1] rescue search_str)}')));
 EOF
 
       total_count = total_count['total_count'].to_i
@@ -109,10 +116,12 @@ EOF
 
     (lab_samples || []).each do |l|
       lab_samples_results << [
+        l.Sample_ID,
         l.AccessionNum,
         l.PATIENTID,
-        l.TESTDATE,
-        getUserName(l.USERID),
+        l.TestOrdered,
+        "#{(l.OrderDate.to_date.strftime('%d/%b/%Y') rescue nil)}",
+        "#{l.Clinician_F_Name} #{l.Clinician_L_Name}",
         "#{(l.DATE.to_date.strftime('%d/%b/%Y') rescue nil)}",
         getUserName(l.UpdateBy),
         "#{(l.UpdateTimeStamp.to_time.strftime('%d/%b/%Y %H:%M:%S') rescue nil)}",
@@ -133,6 +142,8 @@ EOF
 	end
 
   def sample
+    connect_to_app_database
+
     @sample = []
     lab_sample = LabSample.find(params[:sample_id])
     (lab_sample.attributes.keys || []).each_with_index do |l, i|
@@ -150,6 +161,8 @@ EOF
   end
 
   def get_parameters
+    connect_to_app_database
+
     from  = params[:start].to_i
     to    = (from + 99)
 		length 				= params[:length].to_i
@@ -217,22 +230,13 @@ EOF
 	end
 
   def get_patient_details
-    national_art = National_art
-    database_name = national_art['database']
     identifier = params[:identifier].gsub('-','').squish rescue ''
 
     begin
-      ActiveRecord::Base.establish_connection(
-      :adapter  => national_art['adapter'],
-      :host     => national_art['host'],
-      :database => national_art['database'],
-      :username => national_art['username'],
-      :password => national_art['password'])
+      connect_to_bart_database
     rescue
       connect_to_app_database
     end
-
-
 
     person_name = ActiveRecord::Base.connection.select_one <<EOF
     SELECT given_name, middle_name, family_name, gender, DATE_FORMAT(birthdate, '%d/%b/%Y') birthdate, 
@@ -246,13 +250,7 @@ EOF
 
     if person_name.blank?
 			begin
-        national_art = National_ART_MPC
-				ActiveRecord::Base.establish_connection(
-        :adapter  => national_art['adapter'],
-        :host     => national_art['host'],
-        :database => national_art['database'],
-        :username => national_art['username'],
-        :password => national_art['password'])
+        connect_to_remote_bart_database
 		  rescue 
         connect_to_app_database
 			end
@@ -278,6 +276,7 @@ EOF
   end
 
   def delete_lab_parameter
+    connect_to_app_database
     lab_parameter_id = params[:lab_parameter_id]
     lab_parameter = LabParameter.find(lab_parameter_id)
       
@@ -308,12 +307,16 @@ EOF
   private
   
   def getUserName(user_id)
+    connect_to_bart_database
+
     username = user_id
     user_id = user_id.to_i
 
     if user_id > 0
+      connect_to_app_database
       return User.find(user_id).name rescue nil
     else
+      connect_to_app_database
       return username
     end
   end

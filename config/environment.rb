@@ -40,8 +40,8 @@ Rails::Initializer.run do |config|
   # config.i18n.default_locale = :de
 end
 
-National_art      = YAML.load(File.open(File.join(RAILS_ROOT, "config/database.yml"), "r"))['national_art']
-National_ART_MPC  = YAML.load(File.open(File.join(RAILS_ROOT, "config/database.yml"), "r"))['mpc']
-ApplicationDB     = YAML.load(File.open(File.join(RAILS_ROOT, "config/database.yml"), "r"))[RAILS_ENV]
-User.establish_connection(National_art)
+National_ART          = YAML.load(File.open(File.join(RAILS_ROOT, "config/database.yml"), "r"))['national_art']
+Remote_national_ART   = YAML.load(File.open(File.join(RAILS_ROOT, "config/database.yml"), "r"))['remote_national_art']
+ApplicationDB         = YAML.load(File.open(File.join(RAILS_ROOT, "config/database.yml"), "r"))[RAILS_ENV]
+User.establish_connection(National_ART)
 

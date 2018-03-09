@@ -31,3 +31,10 @@ national_art:
   password: database_password
   host: localhost
 
+remote_national_art:
+  adapter: mysql
+  database: database_name
+  username: database_user
+  password: database_password
+  host: localhost
+

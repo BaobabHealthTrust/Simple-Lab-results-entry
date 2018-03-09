@@ -30,16 +30,16 @@ class User < ActiveRecord::Base
 	end
   
   def name
-    national_art = National_art
-    database_name = national_art['database']
+    ApplicationController.helpers.connect_to_bart_database
 
     person_name = ActiveRecord::Base.connection.select_one <<EOF
-    SELECT given_name, family_name FROM #{database_name}.person_name n 
+    SELECT given_name, family_name FROM person_name n 
     WHERE n.voided = 0 AND n.voided = 0 AND n.person_id = #{self.person_id} 
     ORDER BY n.date_created DESC LIMIT 1;
 EOF
 
     return "#{person_name['given_name']} #{person_name['family_name']}"
+    ApplicationController.helpers.connect_to_app_database
   end
 
 end
