@@ -64,6 +64,7 @@ class LabSampleController < ApplicationController
                     'UpdateBy','TimeStamp','Attribute','']
     
     if params[:search]['value'].blank?
+=begin
 		  lab_samples = LabSample.find(:all, 
       :joins => "LEFT JOIN LabTestTable l ON l.AccessionNum = Lab_Sample.AccessionNum 
         LEFT JOIN Clinician c ON c.Clinician_ID = l.OrderedBy",
@@ -80,32 +81,25 @@ class LabSampleController < ApplicationController
 EOF
 
       total_count = total_count['total_count'].to_i
-
+=end
+      lab_samples = []
+      total_count = 0
     else
-      search_str = "%#{params[:search]['value']}%"
+      #search_str = "#{params[:search]['value']}%"
+      search_str = params[:search]['value'].squish
+      search_attribute = params[:search_attribute] == 1 ? 'AccessionNum' : 'PATIENTID'
 
 		  lab_samples = LabSample.find(:all, :select => "Lab_Sample.*, l.TestOrdered, l.OrderDate, c.*",
         :joins => "LEFT JOIN LabTestTable l ON l.AccessionNum = Lab_Sample.AccessionNum 
         LEFT JOIN Clinician c ON c.Clinician_ID = l.OrderedBy",
-        :conditions =>["(Sample_ID LIKE (?) OR Lab_Sample.AccessionNum LIKE (?) OR PATIENTID LIKE (?) OR l.OrderDate LIKE (?) 
-        OR USERID LIKE(?) OR UpdateBy LIKE (?) OR Attribute LIKE(?) 
-        OR l.TestOrdered LIKE (?) OR (c.Clinician_F_Name LIKE(?) AND c.Clinician_L_Name LIKE (?))) 
-        AND DeleteYN = 0", search_str, search_str, search_str, (search_str.to_date.strftime('%d-%b-%Y') rescue search_str),
-        search_str, search_str, search_str, search_str, 
-        (search_str.squish.split(' ')[0] rescue search_str), 
-        (search_str.squish.split(' ')[1] rescue search_str)],
+        :conditions =>["Lab_Sample.#{search_attribute} = ? AND DeleteYN = 0", search_str],
         :limit => "#{from}, #{length}", :order => "#{column_name[column_number]} #{column_order}")
 
       total_count = ActiveRecord::Base.connection.select_one <<EOF
       SELECT count(*) as total_count FROM Lab_Sample l
       LEFT JOIN LabTestTable t ON l.AccessionNum = t.AccessionNum
       LEFT JOIN Clinician c ON c.Clinician_ID = t.OrderedBy 
-      WHERE l.DeleteYN = 0 AND (l.Sample_ID LIKE ('#{search_str}') OR l.AccessionNum LIKE ('#{search_str}') 
-      OR l.PATIENTID LIKE ('#{search_str}') OR t.OrderDate LIKE ('#{(search_str.to_date.strftime('%d-%b-%Y') rescue search_str)}') 
-      OR l.USERID LIKE('#{search_str}') OR l.UpdateBy LIKE ('#{search_str}') 
-      OR l.Attribute LIKE('#{search_str}') OR t.TestOrdered LIKE('#{search_str}') 
-      OR (c.Clinician_F_Name LIKE('#{(search_str.squish.split(' ')[0] rescue search_str)}') 
-      AND c.Clinician_L_Name LIKE('#{(search_str.squish.split(' ')[1] rescue search_str)}')));
+      WHERE l.DeleteYN = 0 AND (l.#{search_attribute} = ('#{search_str}')); 
 EOF
 
       total_count = total_count['total_count'].to_i
@@ -155,6 +149,16 @@ EOF
       end unless attribute.blank?
 
       @sample << [l, attribute]
+    end
+
+    lab_test_table = ActiveRecord::Base.connection.select_one <<EOF
+      SELECT * FROM LabTestTable l
+      WHERE l.AccessionNum = #{lab_sample.AccessionNum};
+EOF
+
+    unless lab_test_table.blank?
+      location = lab_test_table['Location']
+      @sample  << ["Ordered location", "<b style='font-size: 15px; color: green;'>#{location}</b>"]
     end
 
     @patient_identifier = lab_sample.PATIENTID
@@ -237,15 +241,25 @@ EOF
     rescue
       connect_to_app_database
     end
-
+    filing_number_location = ActiveRecord::Base.connection.select_one <<EOF
+    SELECT name FROM location l 
+    INNER JOIN global_property g ON g.property_value = l.location_id
+    WHERE g.property = 'current_health_center_id';
+EOF
+        
     person_name = ActiveRecord::Base.connection.select_one <<EOF
-    SELECT given_name, middle_name, family_name, gender, DATE_FORMAT(birthdate, '%d/%b/%Y') birthdate, 
-    birthdate_estimated
-    FROM person p
-    INNER JOIN patient_identifier i ON i.patient_id = p.person_id
-    LEFT JOIN person_name n ON p.person_id = n.person_id
-    WHERE identifier = '#{identifier}' AND i.voided = 0 AND n.voided = 0 
-    AND p.voided = 0 ORDER BY n.date_created DESC LIMIT 1;
+        SELECT given_name, middle_name, family_name, gender, DATE_FORMAT(birthdate, '%d/%b/%Y') birthdate, 
+        birthdate_estimated, f.identifier filing_number, d.identifier dormant_filing_number,
+        "#{filing_number_location['name']}" AS location
+        FROM person p
+        INNER JOIN patient_identifier i ON i.patient_id = p.person_id
+        LEFT JOIN person_name n ON p.person_id = n.person_id
+        LEFT JOIN patient_identifier f ON p.person_id = f.patient_id 
+        AND f.identifier_type = 17 AND f.voided = 0
+        LEFT JOIN patient_identifier d ON p.person_id = d.patient_id 
+        AND d.identifier_type = 18 AND d.voided = 0
+        WHERE i.identifier = '#{identifier}' AND i.voided = 0 AND n.voided = 0 
+        AND p.voided = 0 ORDER BY n.date_created DESC LIMIT 1;
 EOF
 
     if person_name.blank?
@@ -256,14 +270,25 @@ EOF
 			end
 
 			begin
+				filing_number_location = ActiveRecord::Base.connection.select_one <<EOF
+        SELECT name FROM location l 
+        INNER JOIN global_property g ON g.property_value = l.location_id
+        WHERE g.property = 'current_health_center_id';
+EOF
+        
 				person_name = ActiveRecord::Base.connection.select_one <<EOF
-				SELECT given_name, middle_name, family_name, gender, DATE_FORMAT(birthdate, '%d/%b/%Y') birthdate, 
-				birthdate_estimated
-				FROM person p
-				INNER JOIN patient_identifier i ON i.patient_id = p.person_id
-				LEFT JOIN person_name n ON p.person_id = n.person_id
-				WHERE identifier = '#{identifier}' AND i.voided = 0 AND n.voided = 0 
-				AND p.voided = 0 ORDER BY n.date_created DESC LIMIT 1;
+        SELECT given_name, middle_name, family_name, gender, DATE_FORMAT(birthdate, '%d/%b/%Y') birthdate, 
+        birthdate_estimated, f.identifier filing_number, d.identifier dormant_filing_number,
+        "#{filing_number_location['name']}" AS location
+        FROM person p
+        INNER JOIN patient_identifier i ON i.patient_id = p.person_id
+        LEFT JOIN person_name n ON p.person_id = n.person_id
+        LEFT JOIN patient_identifier f ON p.person_id = f.patient_id 
+        AND f.identifier_type = 17 AND f.voided = 0
+        LEFT JOIN patient_identifier d ON p.person_id = d.patient_id 
+        AND d.identifier_type = 18 AND d.voided = 0
+        WHERE i.identifier = '#{identifier}' AND i.voided = 0 AND n.voided = 0 
+        AND p.voided = 0 ORDER BY n.date_created DESC LIMIT 1;
 EOF
 
 			rescue

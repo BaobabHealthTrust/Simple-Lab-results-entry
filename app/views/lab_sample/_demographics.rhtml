@@ -91,6 +91,21 @@ function dataT(){
           <td>Birthdate:&nbsp;
           <span id="dob"></span></td>
         </tr>
+        <tr>
+          <td>Filing number:&nbsp;
+          <span id="filing_number"></span></td>
+        </tr>
+        <tr>
+          <td>Dormant filing number:&nbsp;
+          <span id="dormant_filing_number"></span></td>
+        </tr>
+        <tr>
+          <td style="border-style: solid; border-width: 0px 0px 1px;">&nbsp;</td>
+        </tr>
+        <tr>
+          <td>Patient file location:&nbsp;
+          <span id="filing_number_location" style="color: green;"></span></td>
+        </tr>
       </table>
     </div>
 
@@ -227,6 +242,9 @@ function printName(result) {
     document.getElementById('last_name').innerHTML = data['family_name'];  
     document.getElementById('gender').innerHTML = data['gender'];  
     document.getElementById('dob').innerHTML = data['birthdate'];  
+    document.getElementById('filing_number').innerHTML = data['filing_number'];  
+    document.getElementById('dormant_filing_number').innerHTML = data['dormant_filing_number'];  
+    document.getElementById('filing_number_location').innerHTML = data['location'];  
   }catch(e) {
     return;
   }

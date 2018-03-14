@@ -14,9 +14,9 @@ function dataT(){
 	dataTable = jQuery('#search_results').DataTable( {
 			"processing": true,
 			"serverSide": true,
-			"ajax": "/get_samples",
+			"ajax": "/get_samples?search_attribute=" + document.getElementById('search_attribute').value,
       "columnDefs": [
-				{ "orderable": false, "targets": [0,7,10] }
+				{ "orderable": false, "targets": [0,10] }
 			]
 	} );
 
@@ -29,11 +29,14 @@ function dataT(){
 
 
 <h1>Lab Sample(s)</h1>
-<p>Table will show the first latest 10 samples recorded (default)</p>
-
 
 <div class="page-header">
   <div class="asset_search_div">
+    <p style="color: white; font-weight: bold;">Find record by entering the Accession number in the search field. The system will start searching as you are typin.</p>
+    <select id="search_attribute">
+      <option value="1">Search by accession number</option>
+      <option value="2">Search by patient identifier</option>
+    </select>
   </div>
 </div>
 
