@@ -64,30 +64,11 @@ class LabSampleController < ApplicationController
                     'UpdateBy','TimeStamp','Attribute','']
     
     if params[:search]['value'].blank?
-=begin
-		  lab_samples = LabSample.find(:all, 
-      :joins => "LEFT JOIN LabTestTable l ON l.AccessionNum = Lab_Sample.AccessionNum 
-        LEFT JOIN Clinician c ON c.Clinician_ID = l.OrderedBy",
-      :select => "Lab_Sample.*, l.TestOrdered,l.OrderDate, c.*",
-      :conditions => ["Lab_Sample.DeleteYN = 0"], 
-      :limit => "#{from}, #{length}",
-      :order => "#{column_name[column_number]} #{column_order}")
-
-      total_count = ActiveRecord::Base.connection.select_one <<EOF
-      SELECT count(*) as total_count FROM Lab_Sample l 
-      LEFT JOIN LabTestTable t ON l.AccessionNum = t.AccessionNum 
-      LEFT JOIN Clinician c ON c.Clinician_ID = t.OrderedBy 
-      WHERE l.DeleteYN = 0;
-EOF
-
-      total_count = total_count['total_count'].to_i
-=end
       lab_samples = []
       total_count = 0
     else
-      #search_str = "#{params[:search]['value']}%"
       search_str = params[:search]['value'].squish
-      search_attribute = params[:search_attribute] == 1 ? 'AccessionNum' : 'PATIENTID'
+      search_attribute = params[:search_attribute].to_i == 1 ? 'AccessionNum' : 'PATIENTID'
 
 		  lab_samples = LabSample.find(:all, :select => "Lab_Sample.*, l.TestOrdered, l.OrderDate, c.*",
         :joins => "LEFT JOIN LabTestTable l ON l.AccessionNum = Lab_Sample.AccessionNum 

@@ -25,7 +25,7 @@ class User < ActiveRecord::Base
 		self.password
 	end
    
-	def self.encrypt(password,salt)
+	def encrypt(password,salt)
 		Digest::SHA1.hexdigest(password+salt)
 	end
   
