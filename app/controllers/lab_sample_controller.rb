@@ -68,19 +68,20 @@ class LabSampleController < ApplicationController
       total_count = 0
     else
       search_str = params[:search]['value'].squish
-      search_attribute = params[:search_attribute].to_i == 1 ? 'AccessionNum' : 'PATIENTID'
+      search_attribute = params[:search_attribute].to_i == 1 ? 'AccessionNum' : 'Pat_ID'
 
-		  lab_samples = LabSample.find(:all, :select => "Lab_Sample.*, l.TestOrdered, l.OrderDate, c.*",
-        :joins => "LEFT JOIN LabTestTable l ON l.AccessionNum = Lab_Sample.AccessionNum 
-        LEFT JOIN Clinician c ON c.Clinician_ID = l.OrderedBy",
-        :conditions =>["Lab_Sample.#{search_attribute} = ? AND DeleteYN = 0", search_str],
+		  lab_test_table = LabTestTable.find(:all, 
+        :select => "LabTestTable.*, s.Sample_ID, s.UpdateTimeStamp, s.Attribute,s.UpdateBy, c.*",
+        :joins => "LEFT JOIN Lab_Sample s ON LabTestTable.AccessionNum = s.AccessionNum 
+        LEFT JOIN Clinician c ON c.Clinician_ID = LabTestTable.OrderedBy",
+        :conditions =>["LabTestTable.#{search_attribute} = ?", search_str],
         :limit => "#{from}, #{length}", :order => "#{column_name[column_number]} #{column_order}")
 
       total_count = ActiveRecord::Base.connection.select_one <<EOF
-      SELECT count(*) as total_count FROM Lab_Sample l
-      LEFT JOIN LabTestTable t ON l.AccessionNum = t.AccessionNum
+      SELECT count(*) as total_count FROM LabTestTable t
+      LEFT JOIN Lab_Sample s ON s.AccessionNum = t.AccessionNum
       LEFT JOIN Clinician c ON c.Clinician_ID = t.OrderedBy 
-      WHERE l.DeleteYN = 0 AND (l.#{search_attribute} = ('#{search_str}')); 
+      WHERE (t.#{search_attribute} = ('#{search_str}')); 
 EOF
 
       total_count = total_count['total_count'].to_i
@@ -89,11 +90,11 @@ EOF
     lab_samples_results = []
     
 
-    (lab_samples || []).each do |l|
+    (lab_test_table || []).each do |l|
       lab_samples_results << [
         l.Sample_ID,
         l.AccessionNum,
-        l.PATIENTID,
+        l.Pat_ID,
         l.TestOrdered,
         "#{(l.OrderDate.to_date.strftime('%d/%b/%Y') rescue nil)}",
         "#{l.Clinician_F_Name} #{l.Clinician_L_Name}",
@@ -341,11 +342,13 @@ EOF
   end
 
   def buildSampleBTN(sample_id)
+   return "&nbsp;" if sample_id.blank?
+
     btn_html =<<EOF
     <table style="width: 100%;">
       <tr>
-        <td><button class="btn btn-primary" onclick="document.location='/sample/#{sample_id}'">Show</button></td>
-        <td><button class="btn btn-danger" onclick="/void_sample/#{sample_id}">Delete</button></td>
+        <td><button class="btn btn-primary" onclick="document.location='/sample/#{sample_id}'">Show results</button></td>
+        <!-- <td><button class="btn btn-danger" onclick="/void_sample/#{sample_id}">Delete</button></td> -->
       </tr>
     </table>
 EOF

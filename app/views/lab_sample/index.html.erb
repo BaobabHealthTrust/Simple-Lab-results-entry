@@ -9,18 +9,28 @@
   
   
 <script>
-  
-function dataT(){          
+
+var search_attribute_value = 1;
+var dataTable = null;
+ 
+function dataT(){         
+   
 	dataTable = jQuery('#search_results').DataTable( {
 			"processing": true,
 			"serverSide": true,
-			"ajax": "/get_samples?search_attribute=" + document.getElementById('search_attribute').value,
+			"ajax": "/get_samples?search_attribute=" + search_attribute_value,
       "columnDefs": [
 				{ "orderable": false, "targets": [0,10] }
 			]
 	} );
 
 }
+
+function setSearchAttribute(value) {
+  search_attribute_value = value;
+  dataTable.ajax.url( "get_samples?search_attribute=" + search_attribute_value ).load();
+}
+
 </script>
 
 
@@ -33,7 +43,7 @@ function dataT(){
 <div class="page-header">
   <div class="asset_search_div">
     <p style="color: white; font-weight: bold;">Find record by entering the Accession number in the search field. The system will start searching as you are typin.</p>
-    <select id="search_attribute">
+    <select id="search_attribute" onchange="setSearchAttribute(this.value);">
       <option value="1">Search by accession number</option>
       <option value="2">Search by patient identifier</option>
     </select>
