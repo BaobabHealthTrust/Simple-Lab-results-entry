@@ -31,6 +31,23 @@ function setSearchAttribute(value) {
   dataTable.ajax.url( "get_samples?search_attribute=" + search_attribute_value ).load();
 }
 
+function createSampleID(accession_num) {
+  btns = document.getElementsByClassName('accession_' + accession_num);
+  for(var i = 0; i < btns.length; i++) {
+    btns[i].disabled = true; 
+  }
+
+ jQuery.ajax({
+    type: "GET",
+    url: "/create_sample_id/" + accession_num,
+    success: function(result){
+      dataTable.clear(); //fnClearTable();
+      setSearchAttribute(search_attribute_value);                                                           
+    }
+  });
+
+
+}
 </script>
 
 

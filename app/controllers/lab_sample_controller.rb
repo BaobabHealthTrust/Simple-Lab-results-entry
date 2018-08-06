@@ -102,7 +102,7 @@ EOF
         getUserName(l.UpdateBy),
         "#{(l.UpdateTimeStamp.to_time.strftime('%d/%b/%Y %H:%M:%S') rescue nil)}",
         l.Attribute,
-        buildSampleBTN(l.Sample_ID)
+        buildSampleBTN(l.Sample_ID, l.AccessionNum)
       ]
 		end
 
@@ -311,6 +311,19 @@ EOF
     render :text => "Delete lab parameter: #{lab_parameter_id}"    
   end
 
+  def create_sample_id
+		location_id = site_location_id
+    lab_test = LabTestTable.find(params[:accession_num])
+
+    lab_sample = LabSample.create(:PATIENTID => lab_test.Pat_ID, :TESTDATE => Date.today,
+      :USERID => User.current.id, :DATE => Date.today, :TIME => Time.now().strftime('%H:%M:%S'),
+      :SOURCE => location_id, :Attribute => 'pass', :UpdateBy => User.current.username,
+			:AccessionNum => params[:accession_num],:UpdateTimeStamp => Time.now().strftime('%Y-%m-%d %H:%M:%S'), :DeleteYN => 0)
+
+
+		render :text => {:sample_id => lab_sample['sample_id']}
+  end
+
   private
   
   def getUserName(user_id)
@@ -341,17 +354,29 @@ EOF
     return btn_html
   end
 
-  def buildSampleBTN(sample_id)
-   return "&nbsp;" if sample_id.blank?
+  def buildSampleBTN(sample_id, accession_num)
+   return "&nbsp;" if sample_id.blank? and accession_num.blank?
 
-    btn_html =<<EOF
-    <table style="width: 100%;">
-      <tr>
-        <td><button class="btn btn-primary" onclick="document.location='/sample/#{sample_id}'">Show results</button></td>
-        <!-- <td><button class="btn btn-danger" onclick="/void_sample/#{sample_id}">Delete</button></td> -->
-      </tr>
-    </table>
+    if sample_id.blank?
+      btn_html =<<EOF
+<table style="width: 100%;">
+  <tr>
+    <td><button class="btn btn-primary accession_#{accession_num}" onclick="javascript:createSampleID(#{accession_num});">Create sample ID</button></td>
+  </tr>
+</table>
 EOF
+
+    else
+      btn_html =<<EOF
+<table style="width: 100%;">
+  <tr>
+    <td><button class="btn btn-primary" onclick="document.location='/sample/#{sample_id}'">Show</button></td>
+    <td><button class="btn btn-danger" onclick="/void_sample/#{sample_id}">Delete</button></td>
+  </tr>
+</table>
+EOF
+
+    end
 
     return btn_html
   end
@@ -395,6 +420,20 @@ EOF
         :date_created         =>  "#{(result['date_created'].to_date.strftime('%d/%b/%Y') rescue nil)}",
       }
     end
+  end
+
+
+	def site_location_id
+    connect_to_bart_database
+
+    loc_name = ActiveRecord::Base.connection.select_one <<EOF
+    SELECT * FROM location l
+    WHERE location_id = (SELECT property_value FROM global_property g 
+    WHERE property = 'current_health_center_id' LIMIT 1);
+EOF
+
+    connect_to_app_database
+    return "#{loc_name['location_id']}".to_i
   end
 
 end

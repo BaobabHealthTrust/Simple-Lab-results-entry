@@ -50,6 +50,7 @@ ActionController::Routing::Routes.draw do |map|
 	map.clinic  '/find_patient', :controller => 'lab_sample', :action => 'patient'
 	map.clinic  '/get_patients/:search_string', :controller => 'lab_sample', :action => 'get_patients'
 	map.clinic  '/create_sample/:identifier', :controller => 'lab_sample', :action => 'create_sample'
+	map.clinic  '/create_sample_id/:accession_num', :controller => 'lab_sample', :action => 'create_sample_id'
 
   # See how all your routes lay out with "rake routes"
 
